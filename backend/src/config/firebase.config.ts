@@ -2,14 +2,13 @@ import admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 
-const keyPath = process.env.FIREBASE_SERVICE_ACCOUNT || '';
-if (keyPath && fs.existsSync(path.resolve(keyPath))) {
+const keyPath = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+if (!admin.apps.length && keyPath) {
+  const serviceAccount = require(path.resolve(keyPath));
   admin.initializeApp({
-    credential: admin.credential.cert(require(path.resolve(keyPath)))
+    credential: admin.credential.cert(serviceAccount)
   });
-} else {
-  // não inicializa (somente protótipo)
-  // console.warn('FIREBASE_SERVICE_ACCOUNT não configurado corretamente');
 }
 
 export default admin;

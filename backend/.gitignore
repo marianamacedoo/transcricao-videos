@@ -1,0 +1,9 @@
+
+node_modules/
+
+#build e ambiente
+dist/
+.env
+
+#chaves
+serviceAccountKey.json
