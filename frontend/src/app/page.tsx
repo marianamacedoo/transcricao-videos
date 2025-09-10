@@ -1,37 +1,44 @@
-"use client"; // necessário para usar useState no App Router
+"use client";
 
 import { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 export default function Home() {
   const [email, setEmail] = useState("");
-  const [user, setUser] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  if (user) {
-    return (
-      <div>
-        <h1>Bem-vindo, {user}</h1>
-        <a href="/dashboard">Ir para Dashboard</a>
-      </div>
-    );
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      setUser(email); // depois trocamos para Firebase
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.message);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleLogin}>
       <h2>Login</h2>
       <input
         type="email"
-        placeholder="Digite seu e-mail"
+        placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
+      <input
+        type="password"
+        placeholder="Senha"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
       <button type="submit">Entrar</button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      <p>
+        Não tem conta? <a href="/register">Cadastre-se</a>
+      </p>
     </form>
   );
 }

@@ -1,13 +1,13 @@
-import admin from 'firebase-admin';
-import fs from 'fs';
-import path from 'path';
+import admin from "firebase-admin";
+import dotenv from "dotenv";
+import path from "path";
 
-const keyPath = process.env.FIREBASE_SERVICE_ACCOUNT;
+dotenv.config();
 
-if (!admin.apps.length && keyPath) {
-  const serviceAccount = require(path.resolve(keyPath));
+if (!admin.apps.length) {
+  const serviceAccount = require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT || ""));
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 
