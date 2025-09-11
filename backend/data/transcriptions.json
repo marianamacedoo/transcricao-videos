@@ -22,5 +22,13 @@
     "status": "done",
     "resultPath": null,
     "createdAt": "2025-09-11T15:46:14.562Z"
+  },
+  {
+    "id": "cd57c924-ae55-4829-8ece-302303e73692",
+    "filename": "1757606664630-08daf1ef-617f-4b47-9c5c-f8d56b64e5e2.mp4",
+    "originalName": "videoteste.mp4",
+    "status": "done",
+    "resultPath": "C:\\Users\\marim\\transcricao-videos\\backend\\uploads\\cd57c924-ae55-4829-8ece-302303e73692.txt",
+    "createdAt": "2025-09-11T16:04:24.647Z"
   }
 ]
