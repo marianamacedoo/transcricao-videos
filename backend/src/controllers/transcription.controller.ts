@@ -3,11 +3,12 @@ import { createRecord, listRecords, getRecord, updateRecord } from '../services/
 import { createTranscriptionAsync } from '../services/transcription.service';
 import path from 'path';
 
+// upload do arquivo para transcrição
 export const uploadTranscription = async (req: Request, res: Response) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Arquivo não enviado (campo "file")' });
 
-    // criar registro inicial (status: processing)
+    // cria registro inicial (status: processing)
     const record = await createRecord({
       filename: req.file.filename,
       originalName: req.file.originalname,
@@ -32,11 +33,13 @@ export const uploadTranscription = async (req: Request, res: Response) => {
   }
 };
 
+//lista transcricoes
 export const listTranscriptions = async (_req: Request, res: Response) => {
   const list = await listRecords();
   res.json(list);
 };
 
+//busca transcricao especifica
 export const getTranscriptionById = async (req: Request, res: Response) => {
   const id = req.params.id;
   const record = await getRecord(id);

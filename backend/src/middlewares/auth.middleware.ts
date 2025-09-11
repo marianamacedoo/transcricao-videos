@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import admin from "../config/firebase.config";
 
+// exporta uma função assíncrona que age como um middleware
 export async function verifyToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {

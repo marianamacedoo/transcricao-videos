@@ -10,17 +10,18 @@ const execAsync = promisify(exec);
 const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 const OPENAI_TRANSCRIPT_URL = 'https://api.openai.com/v1/audio/transcriptions';
 
+// converte um arquivo de áudio para MP3 usando o ffmpeg
 async function convertToMp3(inputPath: string): Promise<string> {
   const outPath = `${inputPath}.mp3`;
-  // comando ffmpeg: extrai áudio para mp3
   const cmd = `ffmpeg -y -i "${inputPath}" -vn -acodec libmp3lame -ar 44100 -ac 2 "${outPath}"`;
   await execAsync(cmd);
   return outPath;
 }
 
+// inicia o processo de transcrição de forma assíncrona
 export async function createTranscriptionAsync(id: string, filePath: string): Promise<string | null> {
   try {
-    // 1) Garantir que é áudio (extensões comuns)
+    // garantir que é áudio
     const ext = path.extname(filePath).toLowerCase();
     let audioPath = filePath;
     const audioExts = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg'];
@@ -29,11 +30,13 @@ export async function createTranscriptionAsync(id: string, filePath: string): Pr
       audioPath = await convertToMp3(filePath);
     }
 
-    // 2) Chamada para OpenAI (Whisper / speech-to-text) via REST
+    // chamada para OpenAI (Whisper / speech-to-text) via REST
     const form = new FormData();
     form.append('file', fs.createReadStream(audioPath));
-    form.append('model', 'whisper-1'); // modelo exemplo; ver docs do OpenAI
+    form.append('model', 'whisper-1'); 
 
+
+    // requisição POST para a OpenAI com o arquivo e o token de autorização.
     const response = await axios.post(OPENAI_TRANSCRIPT_URL, form, {
       headers: {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -44,13 +47,13 @@ export async function createTranscriptionAsync(id: string, filePath: string): Pr
 
     const text = response.data?.text ?? '';
 
-    // 3) salvar resultado em arquivo .txt
+    // salvar resultado em arquivo .txt
     const outTxt = path.resolve(UPLOADS_DIR, `${id}.txt`);
     fs.writeFileSync(outTxt, text, 'utf8');
 
-    // 4) opcional: remover arquivos temporários (comente se quiser manter para debug)
-    // fs.unlinkSync(audioPath); // se quiser remover o mp3 convertido
-    // fs.unlinkSync(filePath); // se quiser remover o upload original
+    // remover arquivos temporários 
+    // fs.unlinkSync(audioPath); //  remover o mp3 convertido
+    // fs.unlinkSync(filePath); //  remover o upload original
 
     return outTxt;
   } catch (err) {

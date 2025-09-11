@@ -5,9 +5,13 @@ import { verifyToken } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-// só permite se usuário logado (token válido)
+// rota POST, verifica token e processa arquivo
 router.post("/", verifyToken, upload.single("file"), controller.uploadTranscription);
+
+// lista transcricoes
 router.get("/", verifyToken, controller.listTranscriptions);
+
+// detalha transição
 router.get("/:id", verifyToken, controller.getTranscriptionById);
 
 export default router;

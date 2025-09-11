@@ -6,5 +6,21 @@
     "status": "done",
     "resultPath": "C:\\Users\\marim\\transcricao-videos\\backend\\uploads\\75d11d62-7915-468b-87da-1eddc475fc72.txt",
     "createdAt": "2025-09-10T19:03:01.342Z"
+  },
+  {
+    "id": "e82d8530-1b11-4d53-814d-a01c9615d6d4",
+    "filename": "1757602903316-00446d26-dd23-4d37-bbe1-d169401f4dfe.mp3",
+    "originalName": "audio1.mp3",
+    "status": "done",
+    "resultPath": "C:\\Users\\marim\\transcricao-videos\\backend\\uploads\\e82d8530-1b11-4d53-814d-a01c9615d6d4.txt",
+    "createdAt": "2025-09-11T15:01:43.387Z"
+  },
+  {
+    "id": "95ecd3de-7dad-4f58-8f55-d3aaccb401ab",
+    "filename": "1757605574549-ab3067cb-9ac8-4577-b128-8592a09a2deb.mp4",
+    "originalName": "videoteste.mp4",
+    "status": "done",
+    "resultPath": null,
+    "createdAt": "2025-09-11T15:46:14.562Z"
   }
 ]
