@@ -20,25 +20,47 @@ export default function Home() {
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <h2>Login</h2>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Senha"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button type="submit">Entrar</button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <p>
-        Não tem conta? <a href="/register">Cadastre-se</a>
-      </p>
-    </form>
+    <div className="flex justify-center items-center h-screen bg-gray-100">
+      <form onSubmit={handleLogin} className="bg-white p-8 rounded-lg shadow-md w-96">
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login</h2>
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+            Email
+          </label>
+          <input
+            type="email"
+            placeholder="Digite seu email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="mb-6">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+            Senha
+          </label>
+          <input
+            type="password"
+            placeholder="Digite sua senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Entrar
+        </button>
+        {error && <p className="text-red-500 text-center mt-4 text-sm">{error}</p>}
+        <p className="mt-4 text-center text-sm text-gray-600">
+          Não tem conta?
+          <a href="/register" className="text-blue-600 hover:underline ml-1">
+            Cadastre-se
+          </a>
+        </p>
+      </form>
+    </div>
   );
 }
