@@ -12,14 +12,24 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      // cria o usuário no Firebase e obtém as credenciais
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await fetch("http://localhost:4000/users", { // rota no backend
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.uid, email: user.email }),
+      });
       window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  return (
+return (
     <div className="flex justify-center items-center h-screen bg-gray-100">
       <form onSubmit={handleRegister} className="bg-white p-8 rounded-lg shadow-md w-96">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Crie sua conta</h2>

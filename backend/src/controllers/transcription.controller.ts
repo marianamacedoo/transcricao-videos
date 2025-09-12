@@ -2,14 +2,23 @@ import { Request, Response } from 'express';
 import { createRecord, listRecords, getRecord, updateRecord } from '../services/db.service';
 import { createTranscriptionAsync } from '../services/transcription.service';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 // upload do arquivo para transcrição
 export const uploadTranscription = async (req: Request, res: Response) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Arquivo não enviado (campo "file")' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'Arquivo não enviado (campo "file")' });
+    }
+
+    // Pega o ID do usuário do objeto de requisição (adicionado pelo middleware).
+    const userId = (req as any).user.uid;
+    const transcriptionId = uuidv4(); //gera o id
 
     // cria registro inicial (status: processing)
     const record = await createRecord({
+      id: transcriptionId,
+      userId: userId, // Associa a transcrição ao usuário
       filename: req.file.filename,
       originalName: req.file.originalname,
       status: 'processing',
@@ -33,13 +42,15 @@ export const uploadTranscription = async (req: Request, res: Response) => {
   }
 };
 
-//lista transcricoes
-export const listTranscriptions = async (_req: Request, res: Response) => {
-  const list = await listRecords();
+// lista transcricoes
+export const listTranscriptions = async (req: Request, res: Response) => {
+  // Pega o ID do usuário para filtrar as transcrições.
+  const userId = (req as any).user.uid;
+  const list = await listRecords(userId);
   res.json(list);
 };
 
-//busca transcricao especifica
+// busca transcricao especifica
 export const getTranscriptionById = async (req: Request, res: Response) => {
   const id = req.params.id;
   const record = await getRecord(id);
