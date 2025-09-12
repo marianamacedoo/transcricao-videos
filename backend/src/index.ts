@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import pingRoute from './routes/ping.route';
 import transcriptionsRoute from './routes/transcriptions.route';
+import userRoute from './routes/user.route';
 import path from 'path';
 import fs from 'fs';
 
@@ -41,3 +42,4 @@ app.listen(PORT, () => {
   console.log(` Backend rodando em http://localhost:${PORT}`);
 });
 
+app.use('/users', userRoute);
