@@ -10,7 +10,7 @@ export default function Dashboard() {
   const [transcriptions, setTranscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Novos estados para o formulário de upload
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -20,7 +20,7 @@ export default function Dashboard() {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !auth.currentUser) return;
-    
+
     setUploading(true);
     setUploadMessage(null);
 
@@ -44,9 +44,7 @@ export default function Dashboard() {
       const data = await response.json();
       setUploadMessage(`Upload realizado com sucesso! ID da transcrição: ${data.id}. Status: ${data.status}`);
       setFile(null); // Limpa o arquivo selecionado
-      
-      // Atualiza a lista de transcrições após um novo upload
-      // Você pode recarregar a lista da API para ver o novo item
+
       const updatedListResponse = await fetch("http://localhost:4000/transcriptions", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -162,10 +160,7 @@ export default function Dashboard() {
                       Status
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Data
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ações
+                      Transcrição
                     </th>
                   </tr>
                 </thead>
@@ -177,9 +172,6 @@ export default function Dashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {t.status}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(t.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {t.status === "done" && (
