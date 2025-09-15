@@ -1,3 +1,4 @@
+import fsp from 'fs/promises'; 
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
@@ -7,8 +8,8 @@ import FormData from 'form-data';
 import { updateRecord } from './db.service';
 
 const execAsync = promisify(exec);
-const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 const OPENAI_TRANSCRIPT_URL = 'https://api.openai.com/v1/audio/transcriptions';
+const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
 // converte um arquivo de áudio para MP3 usando o ffmpeg
 async function convertToMp3(inputPath: string): Promise<string> {
@@ -18,25 +19,30 @@ async function convertToMp3(inputPath: string): Promise<string> {
   return outPath;
 }
 
-// inicia o processo de transcrição de forma assíncrona
+// inicia o processo de transcrição de forma assíncrona.
 export async function createTranscriptionAsync(id: string, filePath: string): Promise<string | null> {
+  const filesToDelete: string[] = []; // armazena os arquivos para serem deletados
+
   try {
-    // garantir que é áudio
+    // checagem e Conversão para Áudio
     const ext = path.extname(filePath).toLowerCase();
     let audioPath = filePath;
     const audioExts = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg'];
+    
+    // adiciona o arquivo original à lista para ser deletado
+    filesToDelete.push(filePath);
+
+    //se nao tiver a extensao do audio
     if (!audioExts.includes(ext)) {
-      // converte usando ffmpeg (necessário ter ffmpeg no PATH)
       audioPath = await convertToMp3(filePath);
+      filesToDelete.push(audioPath); // adiciona o arquivo convertido para ser deletado
     }
 
     // chamada para OpenAI (Whisper / speech-to-text) via REST
     const form = new FormData();
     form.append('file', fs.createReadStream(audioPath));
-    form.append('model', 'whisper-1'); 
+    form.append('model', 'whisper-1');
 
-
-    // requisição POST para a OpenAI com o arquivo e o token de autorização.
     const response = await axios.post(OPENAI_TRANSCRIPT_URL, form, {
       headers: {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -47,15 +53,20 @@ export async function createTranscriptionAsync(id: string, filePath: string): Pr
 
     const text = response.data?.text ?? '';
 
-    // salvar resultado em arquivo .txt
-    const outTxt = path.resolve(UPLOADS_DIR, `${id}.txt`);
-    fs.writeFileSync(outTxt, text, 'utf8');
+    // salva o resultado em um arquivo .txt e retorna o caminho.
+    const outTxtPath = path.resolve(UPLOADS_DIR, `${id}.txt`);
+    await fsp.writeFile(outTxtPath, text, 'utf-8');
 
-    // remover arquivos temporários 
-    // fs.unlinkSync(audioPath); //  remover o mp3 convertido
-    // fs.unlinkSync(filePath); //  remover o upload original
+    // remove os arquivos temporários de áudio.
+    for (const file of filesToDelete) {
+      if (fs.existsSync(file)) {
+        await fsp.unlink(file);
+      }
+    }
 
-    return outTxt;
+    // retorna o caminho para o arquivo .txt que foi salvo.
+    return outTxtPath;
+
   } catch (err) {
     console.error('Erro createTranscriptionAsync:', err);
     await updateRecord(id, { status: 'failed' });

@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,12 +10,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Novos estados para o formulário de upload
+  // novos estados para o formulário de upload
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
-  // Função para lidar com o upload do arquivo
+  // função para lidar com o upload do arquivo
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !auth.currentUser) return;
@@ -43,7 +42,7 @@ export default function Dashboard() {
 
       const data = await response.json();
       setUploadMessage(`Upload realizado com sucesso! ID da transcrição: ${data.id}. Status: ${data.status}`);
-      setFile(null); // Limpa o arquivo selecionado
+      setFile(null); // limpa o arquivo selecionado
 
       const updatedListResponse = await fetch("http://localhost:4000/transcriptions", {
         headers: {
@@ -59,6 +58,15 @@ export default function Dashboard() {
       setUploading(false);
     }
   };
+
+  // Função para exibir o token no console
+  async function mostrarToken() {
+    if (auth.currentUser) {
+      const token = await auth.currentUser.getIdToken();
+      console.log("TOKEN JWT:", token);
+      alert("Token exibido no console do navegador!");
+    }
+  }
 
   useEffect(() => {
     const fetchTranscriptions = async (token: string) => {
@@ -114,6 +122,19 @@ export default function Dashboard() {
           </div>
         </header>
 
+        {/* Botão de demonstração para pegar o token */}
+        <div className="mb-8 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-lg">
+          <p className="text-sm font-semibold">
+            Clique no botão abaixo para obter o token de autenticação no console do navegador.
+          </p>
+          <button
+            onClick={mostrarToken}
+            className="mt-2 bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-1 px-3 rounded-lg focus:outline-none"
+          >
+            Mostrar Token no Console
+          </button>
+        </div>
+
         {/* Seção para o formulário de upload */}
         <section className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Solicitar Nova Transcrição</h2>
@@ -160,7 +181,7 @@ export default function Dashboard() {
                       Status
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Transcrição
+                      Ações
                     </th>
                   </tr>
                 </thead>
@@ -168,7 +189,7 @@ export default function Dashboard() {
                   {transcriptions.map((t) => (
                     <tr key={t.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {t.originalName}
+                        {t.original_name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {t.status}

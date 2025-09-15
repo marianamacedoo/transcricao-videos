@@ -1,3 +1,4 @@
+
 import { Request, Response } from 'express';
 import { createRecord, listRecords, getRecord, updateRecord } from '../services/db.service';
 import { createTranscriptionAsync } from '../services/transcription.service';
@@ -11,14 +12,14 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Arquivo não enviado (campo "file")' });
     }
 
-    // Pega o ID do usuário do objeto de requisição (adicionado pelo middleware).
+    // pega o ID do usuário do objeto de requisição 
     const userId = (req as any).user.uid;
-    const transcriptionId = uuidv4(); //gera o id
+    const transcriptionId = uuidv4(); //gera o id da transcrição
 
     // cria registro inicial (status: processing)
     const record = await createRecord({
       id: transcriptionId,
-      userId: userId, // Associa a transcrição ao usuário
+      userId: userId, // associa a transcrição ao usuário
       filename: req.file.filename,
       originalName: req.file.originalname,
       status: 'processing',
@@ -44,7 +45,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
 
 // lista transcricoes
 export const listTranscriptions = async (req: Request, res: Response) => {
-  // Pega o ID do usuário para filtrar as transcrições.
+  // pega o ID do usuário para filtrar as transcrições.
   const userId = (req as any).user.uid;
   const list = await listRecords(userId);
   res.json(list);

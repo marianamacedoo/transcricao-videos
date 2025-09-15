@@ -1,12 +1,9 @@
-import path from 'path';
-import fs from 'fs/promises';
 import pool from '../config/db.config';
-import { v4 as uuidv4 } from 'uuid';
 
-const DB_FILE = path.resolve(__dirname, '../../data/transcriptions.json');
-
+// tipo registros
 type Record = {
   id: string;
+  userId: string;
   filename: string;
   originalName: string;
   status: 'processing' | 'done' | 'failed';
@@ -14,19 +11,7 @@ type Record = {
   createdAt: string;
 };
 
-async function readDB(): Promise<Record[]> {
-  try {
-    const txt = await fs.readFile(DB_FILE, 'utf8');
-    return JSON.parse(txt) as Record[];
-  } catch {
-    return [];
-  }
-}
-
-async function writeDB(data: Record[]) {
-  await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
-
+// cria um novo registro de transcrição no banco de dados
 export async function createRecord(record: any) {
   const queryText = `
     INSERT INTO transcriptions(id, user_id, original_name, filename, status, result_path, created_at)
@@ -34,7 +19,7 @@ export async function createRecord(record: any) {
   `;
   const values = [
     record.id,
-    record.userId, // Adiciona o valor do userId
+    record.userId,
     record.originalName,
     record.filename,
     record.status,
@@ -45,23 +30,32 @@ export async function createRecord(record: any) {
   return record;
 }
 
+// lista os registros de transcrição de um usuário
 export async function listRecords(userId: string) {
-  const queryText = 'SELECT * FROM transcriptions WHERE user_id = $1';
+  const queryText = 'SELECT * FROM transcriptions WHERE user_id = $1 ORDER BY created_at DESC';
   const result = await pool.query(queryText, [userId]);
   return result.rows;
 }
 
+// busca um registro de transcrição específico no banco de dados
 export async function getRecord(id: string) {
-  const db = await readDB();
-  return db.find((r) => r.id === id) ?? null;
+  const queryText = 'SELECT * FROM transcriptions WHERE id = $1';
+  const result = await pool.query(queryText, [id]);
+  return result.rows[0] || null;
 }
 
+
+// atualiza um registro de transcrição no banco de dados
 export async function updateRecord(id: string, patch: Partial<Record>) {
-  const db = await readDB();
-  const idx = db.findIndex((r) => r.id === id);
-  if (idx === -1) return null;
-  db[idx] = { ...db[idx], ...patch };
-  await writeDB(db);
-  return db[idx];
-}
+  const fields = Object.keys(patch).map((key, index) => {
+    if (key === 'resultPath') {
+      return `result_path = $${index + 2}`;
+    }
+    return `${key} = $${index + 2}`;
+  }).join(', ');
 
+  const values = [id, ...Object.values(patch)];
+  const queryText = `UPDATE transcriptions SET ${fields} WHERE id = $1 RETURNING *`;
+  const result = await pool.query(queryText, values);
+  return result.rows[0] || null;
+}
