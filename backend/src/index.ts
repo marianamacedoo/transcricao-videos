@@ -43,3 +43,5 @@ app.listen(PORT, () => {
 });
 
 app.use('/users', userRoute);
+
+export default app;

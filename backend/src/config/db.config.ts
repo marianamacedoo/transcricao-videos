@@ -1,4 +1,3 @@
-// backend/src/config/db.config.ts
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 

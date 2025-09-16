@@ -51,13 +51,18 @@ export async function createTranscriptionAsync(id: string, filePath: string): Pr
       maxBodyLength: Infinity
     });
 
+    // Pega o texto da transcrição e a duração do áudio em segundos.
     const text = response.data?.text ?? '';
-
-    // salva o resultado em um arquivo .txt e retorna o caminho.
+    const audioDurationInSeconds = response.data?.usage?.seconds ?? 0;
+    
+    // Converte a duração para minutos (opcional)
+    const audioDurationInMinutes = audioDurationInSeconds / 60;
+    
+    // Salva o resultado em um arquivo .txt e retorna o caminho.
     const outTxtPath = path.resolve(UPLOADS_DIR, `${id}.txt`);
     await fsp.writeFile(outTxtPath, text, 'utf-8');
 
-    // remove os arquivos temporários de áudio.
+    // Remove os arquivos temporários de áudio.
     for (const file of filesToDelete) {
       if (fs.existsSync(file)) {
         await fsp.unlink(file);
