@@ -28,7 +28,7 @@ async function convertToMp3(inputPath: string): Promise<string> {
 }
 
 // inicia o processo de transcrição de forma assíncrona.
-export async function createTranscriptionAsync(id: string, filePath: string, userId: string): Promise<string | null> {
+export async function createTranscriptionAsync(id: string, filePath: string, userId: string, dailyUse: number): Promise<string | null> {
   const filesToDelete: string[] = [filePath]; // armazena o caminho original
 
   try {
@@ -62,19 +62,6 @@ export async function createTranscriptionAsync(id: string, filePath: string, use
     
     // Converte a duração para minutos
     const audioDurationInMinutes = audioDurationInSeconds / 60;
-
-    // Lógica para verificar o uso diário
-    let dailyUse = audioDurationInMinutes;
-    const lastTranscription = await getLastTranscriptionByUserId(userId);
-
-    if (lastTranscription) {
-        const lastTranscriptionDate = new Date(lastTranscription.created_at);
-        const today = new Date();
-
-        if (lastTranscriptionDate.toLocaleDateString() === today.toLocaleDateString()) {
-            dailyUse += lastTranscription.daily_use;
-        }
-    }
     
     // Salva o resultado em um arquivo .txt e retorna o caminho.
     const outTxtPath = path.resolve(UPLOADS_DIR, `${id}.txt`);

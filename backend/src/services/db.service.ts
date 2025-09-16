@@ -12,11 +12,12 @@ type Record = {
   dailyUse: number;
 };
 
+
 // cria um novo registro de transcrição no banco de dados
 export async function createRecord(record: any) {
   const queryText = `
-    INSERT INTO transcriptions(id, user_id, original_name, filename, status, result_path, created_at)
-    VALUES($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO transcriptions(id, user_id, original_name, filename, status, result_path, created_at, daily_use)
+    VALUES($1, $2, $3, $4, $5, $6, $7, $8)
   `;
   const values = [
     record.id,
@@ -25,7 +26,8 @@ export async function createRecord(record: any) {
     record.filename,
     record.status,
     record.resultPath,
-    record.createdAt
+    record.createdAt,
+    record.dailyUse // Adiciona dailyUse aos valores
   ];
   await pool.query(queryText, values);
   return record;
@@ -56,7 +58,6 @@ export async function updateRecord(id: string, patch: Partial<Record>) {
     if (key === 'transcriptionText') {
       return `transcription_text = $${index + 2}`;
     }
-    // Adiciona a lógica para a coluna 'daily_use'
     if (key === 'dailyUse') {
       return `daily_use = $${index + 2}`;
     }

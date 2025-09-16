@@ -24,12 +24,13 @@ export const uploadTranscription = async (req: Request, res: Response) => {
         currentDailyUse = lastTranscription.daily_use;
     }
     
-    // Supondo que você possa obter a duração do áudio antes de transcrever
-    // O código abaixo é um exemplo e deve ser ajustado para a sua real implementação
+    
     const mediaDurationInSeconds = await getMediaDuration(req.file.path);
-    const estimatedAudioDurationInMinutes = Math.ceil(mediaDurationInSeconds / 60);
+    const estimatedAudioDurationInMinutes = mediaDurationInSeconds / 60;
+    console.log('Duração do áudio:', mediaDurationInSeconds, 'segundos');
 
     const newDailyUse = currentDailyUse + estimatedAudioDurationInMinutes;
+    console.log('Duração do áudio:', estimatedAudioDurationInMinutes, 'minutos');
 
     // Verifica se a cota de 60 minutos será excedida
     if (newDailyUse > 60) {
@@ -44,10 +45,11 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       status: 'processing',
       resultPath: null,
       createdAt: new Date().toISOString(),
-      dailyUse: newDailyUse // Salva o novo uso diário na base
+      dailyUse: newDailyUse 
+
     });
 
-    createTranscriptionAsync(record.id, req.file.path, userId)
+    createTranscriptionAsync(record.id, req.file.path, userId, newDailyUse)
       .then((resultPath) => updateRecord(record.id, { status: 'done', resultPath }))
       .catch((err) => {
         console.error('Erro ao transcrever:', err);

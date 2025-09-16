@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dailyUse, setDailyUse] = useState<number>(0);
+  const [shouldRefresh, setShouldRefresh] = useState(false);
 
   // novos estados para o formulário de upload
   const [file, setFile] = useState<File | null>(null);
@@ -44,6 +45,7 @@ export default function Dashboard() {
       const data = await response.json();
       setUploadMessage(`Upload realizado com sucesso! ID da transcrição: ${data.id}. Status: ${data.status}`);
       setFile(null); // limpa o arquivo selecionado
+      setShouldRefresh(true);
 
       const updatedListResponse = await fetch("http://localhost:4000/transcriptions", {
         headers: {
@@ -99,11 +101,12 @@ export default function Dashboard() {
         setUser(u);
         const token = await u.getIdToken();
         fetchTranscriptions(token);
+        setShouldRefresh(false);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [shouldRefresh]);
 
   if (!user || loading) return <p className="text-center mt-8 text-gray-600">Carregando...</p>;
   if (error) return <p className="text-center mt-8 text-red-500">Erro: {error}</p>;
