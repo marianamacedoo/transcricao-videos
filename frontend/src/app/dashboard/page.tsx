@@ -11,8 +11,6 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [dailyUse, setDailyUse] = useState<number>(0);
   const [shouldRefresh, setShouldRefresh] = useState(false);
-
-  // novos estados para o formulário de upload
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
@@ -39,8 +37,9 @@ export default function Dashboard() {
       });
 
       if (!response.ok) {
-        throw new Error("Falha no upload da transcrição.");
-      }
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Falha no upload da transcrição.");
+    }
 
       const data = await response.json();
       setUploadMessage(`Upload realizado com sucesso! ID da transcrição: ${data.id}. Status: ${data.status}`);
@@ -111,6 +110,9 @@ export default function Dashboard() {
   if (!user || loading) return <p className="text-center mt-8 text-gray-600">Carregando...</p>;
   if (error) return <p className="text-center mt-8 text-red-500">Erro: {error}</p>;
 
+  const MAX_DAILY_USE = 60; 
+  const isQuotaExceeded = dailyUse >= MAX_DAILY_USE;
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
@@ -153,27 +155,33 @@ export default function Dashboard() {
         {/* Seção para o formulário de upload */}
         <section className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Solicitar Nova Transcrição</h2>
-          <form onSubmit={handleUpload}>
-            <input
-              type="file"
-              onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-              className="w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100"
-            />
-            <button
-              type="submit"
-              disabled={uploading || !file}
-              className={`mt-4 w-full py-2 px-4 rounded-lg font-bold
-                ${uploading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}
-              `}
-            >
-              {uploading ? "Enviando..." : "Enviar para Transcrever"}
-            </button>
-          </form>
+          {isQuotaExceeded ? (
+            <p className="text-red-500 font-bold text-center">
+              Limite diário de 60 minutos excedido.
+            </p>
+          ) : (
+            <form onSubmit={handleUpload}>
+              <input
+                type="file"
+                onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+                className="w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100"
+              />
+              <button
+                type="submit"
+                disabled={uploading || !file}
+                className={`mt-4 w-full py-2 px-4 rounded-lg font-bold
+                  ${uploading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}
+                `}
+              >
+                {uploading ? "Enviando..." : "Enviar para Transcrever"}
+              </button>
+            </form>
+          )}
           {uploadMessage && (
             <p className="mt-4 text-center text-sm font-semibold">
               {uploadMessage}

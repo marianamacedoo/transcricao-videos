@@ -12,6 +12,15 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Arquivo não enviado (campo "file")' });
     }
 
+    // lista de extensões de arquivos de mídia permitidas
+    const allowedExtensions = ['.mp3', '.mp4'];
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    
+    // verifica se a extensão do arquivo é permitida
+    if (!allowedExtensions.includes(fileExtension)) {
+      return res.status(400).json({ error: 'Formato de arquivo inválido.' });
+    }
+
     const userId = (req as any).user.uid;
     const transcriptionId = uuidv4();
 

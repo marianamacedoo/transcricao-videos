@@ -25,7 +25,14 @@ export default function Register() {
       });
       window.location.href = "/dashboard";
     } catch (err: any) {
-      setError(err.message);
+      if (err.code === "auth/email-already-in-use") {
+        setError("Já existe uma conta com este email!");
+      } else if (err.code == "auth/weak-password"){
+        setError("Sua senha deve ter no mínimo 6 caracteres!");
+      }
+      else {
+        setError(err.message);
+      }
     }
   };
 
