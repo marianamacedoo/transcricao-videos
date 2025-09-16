@@ -76,3 +76,17 @@ export async function getLastTranscriptionByUserId(userId: string) {
     const result = await pool.query(queryText, [userId]);
     return result.rows[0] || null;
 }
+
+// buscar o uso diário total do usuário
+export async function getDailyUse(userId: string) {
+  const queryText = `
+    SELECT daily_use
+    FROM transcriptions
+    WHERE user_id = $1 AND created_at >= NOW()::date
+    ORDER BY created_at DESC
+    LIMIT 1;
+  `;
+  const result = await pool.query(queryText, [userId]);
+  const dailyUse = result.rows[0]?.daily_use || 0;
+  return dailyUse;
+}

@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [transcriptions, setTranscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dailyUse, setDailyUse] = useState<number>(0);
 
   // novos estados para o formulário de upload
   const [file, setFile] = useState<File | null>(null);
@@ -82,7 +83,8 @@ export default function Dashboard() {
         }
 
         const data = await response.json();
-        setTranscriptions(data);
+        setTranscriptions(data.transcriptions); 
+        setDailyUse(data.dailyUse); 
         setLoading(false);
       } catch (err: any) {
         setError(err.message);
@@ -121,6 +123,16 @@ export default function Dashboard() {
             </button>
           </div>
         </header>
+        {/* Adicione o card com o limite diário */}
+        <section className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Uso Diário</h2>
+          <p className="text-gray-600">
+            Você já utilizou <span className="font-bold">{dailyUse.toFixed(2)}</span> de 60 minutos.
+          </p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${(dailyUse / 60) * 100}%` }}></div>
+          </div>
+        </section>
 
         {/* Botão de demonstração para pegar o token */}
         <div className="mb-8 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-lg">

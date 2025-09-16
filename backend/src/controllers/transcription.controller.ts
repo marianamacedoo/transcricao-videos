@@ -1,6 +1,6 @@
 
 import { Request, Response } from 'express';
-import { createRecord, listRecords, getRecord, updateRecord, getLastTranscriptionByUserId} from '../services/db.service';
+import { createRecord, listRecords, getRecord, updateRecord, getLastTranscriptionByUserId, getDailyUse} from '../services/db.service';
 import { createTranscriptionAsync, getMediaDuration } from '../services/transcription.service';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -67,7 +67,8 @@ export const listTranscriptions = async (req: Request, res: Response) => {
   // pega o ID do usuário para filtrar as transcrições.
   const userId = (req as any).user.uid;
   const list = await listRecords(userId);
-  res.json(list);
+  const dailyUse = await getDailyUse(userId); // busca o uso diário
+  res.json({ transcriptions: list, dailyUse: dailyUse });
 };
 
 // busca transcricao especifica
@@ -77,3 +78,4 @@ export const getTranscriptionById = async (req: Request, res: Response) => {
   if (!record) return res.status(404).json({ error: 'Não encontrado' });
   res.json(record);
 };
+
