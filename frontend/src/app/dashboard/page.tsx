@@ -1,3 +1,4 @@
+// src/app/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,7 +15,7 @@ export default function Dashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>(''); // Novo estado para o termo de pesquisa
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const statusMap: { [key: string]: string } = {
     done: 'Pronto',
@@ -66,14 +67,44 @@ export default function Dashboard() {
       setUploading(false);
     }
   };
+  
+  // Função para deletar uma transcrição
+  const handleDelete = async (id: string) => {
+    if (!auth.currentUser) return;
 
-  async function mostrarToken() {
-    if (auth.currentUser) {
-      const token = await auth.currentUser.getIdToken();
-      console.log("TOKEN JWT:", token);
-      alert("Token exibido no console do navegador!");
+    const confirmDelete = window.confirm("Tem certeza que deseja remover esta transcrição?");
+    if (!confirmDelete) return;
+
+    const token = await auth.currentUser.getIdToken();
+
+    try {
+      const response = await fetch(`http://localhost:4000/transcriptions/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao remover a transcrição.");
+      }
+      
+      // Atualiza a lista de transcrições após a exclusão
+      const updatedListResponse = await fetch("http://localhost:4000/transcriptions", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const updatedData = await updatedListResponse.json();
+      setTranscriptions(updatedData.transcriptions);
+      setDailyUse(updatedData.dailyUse);
+
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
     }
-  }
+  };
+
+
 
   useEffect(() => {
     const fetchTranscriptions = async (token: string) => {
@@ -147,20 +178,6 @@ export default function Dashboard() {
             <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${(dailyUse / 60) * 100}%` }}></div>
           </div>
         </section>
-
-        {/* Botão de demonstração para pegar o token */}
-        <div className="mb-8 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-lg">
-          <p className="text-sm font-semibold">
-            Clique no botão abaixo para obter o token de autenticação no console do navegador.
-          </p>
-          <button
-            onClick={mostrarToken}
-            className="mt-2 bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold py-1 px-3 rounded-lg focus:outline-none"
-          >
-            Mostrar Token no Console
-          </button>
-        </div>
-
         {/* Seção para o formulário de upload */}
         <section className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Solicitar Nova Transcrição</h2>
@@ -169,21 +186,31 @@ export default function Dashboard() {
               Limite diário de 60 minutos excedido.
             </p>
           ) : (
-            <form onSubmit={handleUpload}>
-              <input
-                type="file"
-                onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-                className="w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-full file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-              />
+            <form onSubmit={handleUpload} className="flex flex-col items-center">
+              <label className="w-full h-32 flex flex-col items-center justify-center border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  {file ? (
+                    <p className="text-gray-500 font-medium">{file.name}</p>
+                  ) : (
+                    <>
+                      <p className="mb-2 text-sm text-gray-500 font-semibold">
+                        <span className="font-bold text-blue-600 hover:underline">Clique para fazer upload</span>
+                      </p>
+                      <p className="text-xs text-gray-500">MP3, MP4 (MAX. 500MB)</p>
+                    </>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+                />
+              </label>
+
               <button
                 type="submit"
                 disabled={uploading || !file}
-                className={`mt-4 w-full py-2 px-4 rounded-lg font-bold
+                className={`mt-4 w-1/2 py-2 px-4 rounded-lg font-bold
                   ${uploading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}
                 `}
               >
@@ -235,11 +262,22 @@ export default function Dashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {statusMap[t.status] || t.status}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end items-center space-x-2">
                         {t.status === "done" && (
-                          <a href={`http://localhost:4000/uploads/${t.id}.txt`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-900">
-                            Download
-                          </a>
+                          <>
+                            <a href={`http://localhost:4000/uploads/${t.id}.txt`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-900">
+                              Download
+                            </a>
+                            <button
+                              onClick={() => handleDelete(t.id)}
+                              className="p-1 rounded-full text-red-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+                              aria-label="Remover transcrição"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm6 3a1 1 0 100 2h-6a1 1 0 100-2h6z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </>
                         )}
                       </td>
                     </tr>

@@ -6,6 +6,7 @@ import transcriptionsRoute from './routes/transcriptions.route';
 import userRoute from './routes/user.route';
 import path from 'path';
 import fs from 'fs';
+import multer from 'multer';
 
 dotenv.config();
 
@@ -43,5 +44,14 @@ app.listen(PORT, () => {
 });
 
 app.use('/users', userRoute);
+
+app.use((err: any, req: any, res: any, next: any) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: err.message });
+  }
+  if (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
 
 export default app;

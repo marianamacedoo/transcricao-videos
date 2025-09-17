@@ -14,4 +14,6 @@ router.get("/", verifyToken, controller.listTranscriptions);
 // detalha transição
 router.get("/:id", verifyToken, controller.getTranscriptionById);
 
+// deleta uma transcricao
+router.delete("/:id", verifyToken, controller.deleteTranscription);
 export default router;

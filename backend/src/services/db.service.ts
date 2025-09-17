@@ -91,3 +91,9 @@ export async function getDailyUse(userId: string) {
   const dailyUse = result.rows[0]?.daily_use || 0;
   return dailyUse;
 }
+
+// deletar transcricao
+export async function deleteRecord(id: string) {
+  const queryText = "DELETE FROM transcriptions WHERE id = $1";
+  await pool.query(queryText, [id]);
+}
