@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { createRecord, listRecords, getRecord, updateRecord, getLastTranscriptionByUserId, getDailyUse} from '../services/db.service';
 import { createTranscriptionAsync, getMediaDuration } from '../services/transcription.service';
+import { createLargeTranscriptionAsync } from '../services/largeFile.service';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -57,8 +58,10 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       dailyUse: newDailyUse 
 
     });
+    const fileSizeInBytes = req.file.size;
+    const maxFileSize = 25 * 1024 * 1024; // 25MB em bytes
 
-    createTranscriptionAsync(record.id, req.file.path, userId, newDailyUse)
+    createTranscriptionAsync(record.id, req.file.path, newDailyUse)
       .then((resultPath) => updateRecord(record.id, { status: 'done', resultPath }))
       .catch((err) => {
         console.error('Erro ao transcrever:', err);
