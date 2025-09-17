@@ -1,7 +1,4 @@
 Video Transcription Fullstack App
-<p align="center">
-<img src="https://livenbr.com/wp-content/uploads/2023/12/logo-liven-black-768x312.png" alt="Logo do Projeto" width="300"/>
-</p>
 
 📝 Visão Geral do Projeto
 Esta é uma aplicação full-stack desenvolvida para transcrever áudios e vídeos. O projeto lida com a submissão assíncrona de arquivos de mídia, autenticação de usuários, controle de cotas de uso diário e armazenamento de dados em um banco de dados relacional.
