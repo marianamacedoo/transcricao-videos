@@ -14,14 +14,14 @@ export default function Dashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>(''); // Novo estado para o termo de pesquisa
+
   const statusMap: { [key: string]: string } = {
     done: 'Pronto',
     processing: 'Processando',
     failed: 'Falhou',
   };
 
-
-  // função para lidar com o upload do arquivo
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !auth.currentUser) return;
@@ -43,13 +43,13 @@ export default function Dashboard() {
       });
 
       if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Falha no upload da transcrição.");
-    }
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Falha no upload da transcrição.");
+      }
 
       const data = await response.json();
       setUploadMessage(`Upload realizado com sucesso! ID da transcrição: ${data.id}. Status: ${data.status}`);
-      setFile(null); // limpa o arquivo selecionado
+      setFile(null);
       setShouldRefresh(true);
 
       const updatedListResponse = await fetch("http://localhost:4000/transcriptions", {
@@ -58,8 +58,8 @@ export default function Dashboard() {
         },
       });
       const updatedData = await updatedListResponse.json();
-      setTranscriptions(updatedData);
-
+      setTranscriptions(updatedData.transcriptions);
+      setDailyUse(updatedData.dailyUse);
     } catch (err: any) {
       setUploadMessage(`Erro: ${err.message}`);
     } finally {
@@ -67,7 +67,6 @@ export default function Dashboard() {
     }
   };
 
-  // Função para exibir o token no console
   async function mostrarToken() {
     if (auth.currentUser) {
       const token = await auth.currentUser.getIdToken();
@@ -90,8 +89,8 @@ export default function Dashboard() {
         }
 
         const data = await response.json();
-        setTranscriptions(data.transcriptions); 
-        setDailyUse(data.dailyUse); 
+        setTranscriptions(data.transcriptions);
+        setDailyUse(data.dailyUse);
         setLoading(false);
       } catch (err: any) {
         setError(err.message);
@@ -113,10 +112,14 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [shouldRefresh]);
 
+  const filteredTranscriptions = transcriptions.filter(t =>
+    t.original_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (!user || loading) return <p className="text-center mt-8 text-gray-600">Carregando...</p>;
   if (error) return <p className="text-center mt-8 text-red-500">Erro: {error}</p>;
 
-  const MAX_DAILY_USE = 60; 
+  const MAX_DAILY_USE = 60;
   const isQuotaExceeded = dailyUse >= MAX_DAILY_USE;
 
   return (
@@ -195,10 +198,19 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* Seção para a lista de transcrições */}
+        {/* Seção para a lista de transcrições com barra de pesquisa */}
         <section className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Minhas Transcrições</h2>
-          {transcriptions.length > 0 ? (
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">Minhas Transcrições</h2>
+            <input
+              type="text"
+              placeholder="Pesquisar por nome do arquivo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-64 px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {filteredTranscriptions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead>
@@ -215,7 +227,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {transcriptions.map((t) => (
+                  {filteredTranscriptions.map((t) => (
                     <tr key={t.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {t.original_name}
