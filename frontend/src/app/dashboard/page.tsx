@@ -14,6 +14,12 @@ export default function Dashboard() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const statusMap: { [key: string]: string } = {
+    done: 'Pronto',
+    processing: 'Processando',
+    failed: 'Falhou',
+  };
+
 
   // função para lidar com o upload do arquivo
   const handleUpload = async (e: React.FormEvent) => {
@@ -215,7 +221,7 @@ export default function Dashboard() {
                         {t.original_name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {t.status}
+                        {statusMap[t.status] || t.status}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {t.status === "done" && (
