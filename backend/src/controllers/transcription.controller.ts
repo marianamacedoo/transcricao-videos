@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import { createRecord, listRecords, getRecord, updateRecord, getLastTranscriptionByUserId, getDailyUse, deleteRecord} from '../services/db.service';
 import { createTranscriptionAsync, getMediaDuration } from '../services/transcription.service';
@@ -7,26 +6,30 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 
-// upload do arquivo para transcrição
+/**
+ * @function uploadTranscription
+ * @description Lida com o upload de um arquivo de mídia, valida o formato e a cota de uso,
+ * e inicia o processo de transcrição de forma assíncrona.
+ */
 export const uploadTranscription = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Arquivo não enviado (campo "file")' });
     }
 
-    // lista de extensões de arquivos de mídia permitidas
+    // verificação do formato
     const allowedExtensions = ['.mp3', '.mp4'];
     const fileExtension = path.extname(req.file.originalname).toLowerCase();
     
-    // verifica se a extensão do arquivo é permitida
     if (!allowedExtensions.includes(fileExtension)) {
       return res.status(400).json({ error: 'Formato de arquivo inválido.' });
     }
 
+    //obtenção do id
     const userId = (req as any).user.uid;
-    const transcriptionId = uuidv4();
+    const transcriptionId = uuidv4(); //gera id para transcrição
 
-    // Inicia o processo de verificação da cota
+    // verificação da cota
     let currentDailyUse = 0;
     const lastTranscription = await getLastTranscriptionByUserId(userId);
     const today = new Date();
@@ -35,7 +38,7 @@ export const uploadTranscription = async (req: Request, res: Response) => {
         currentDailyUse = lastTranscription.daily_use;
     }
     
-    
+    //calculo duração do áudio
     const mediaDurationInSeconds = await getMediaDuration(req.file.path);
     const estimatedAudioDurationInMinutes = mediaDurationInSeconds / 60;
     console.log('Duração do áudio:', mediaDurationInSeconds, 'segundos');
@@ -43,11 +46,12 @@ export const uploadTranscription = async (req: Request, res: Response) => {
     const newDailyUse = currentDailyUse + estimatedAudioDurationInMinutes;
     console.log('Duração do áudio:', estimatedAudioDurationInMinutes, 'minutos');
 
-    // Verifica se a cota de 60 minutos será excedida
+    // verifica se a cota de 60 minutos será excedida
     if (newDailyUse > 60) {
         return res.status(403).json({ error: 'Não foi possível fazer a transcrição. Ultrapassa limite diário de 60 minutos.' });
     }
 
+    //criação do registro 
     const record = await createRecord({
       id: transcriptionId,
       userId: userId,
@@ -59,9 +63,8 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       dailyUse: newDailyUse 
 
     });
-    const fileSizeInBytes = req.file.size;
-    const maxFileSize = 25 * 1024 * 1024; // 25MB em bytes
 
+    //processamento do arquivo
     createTranscriptionAsync(record.id, req.file.path, newDailyUse)
       .then((resultPath) => updateRecord(record.id, { status: 'done', resultPath }))
       .catch((err) => {
@@ -77,7 +80,10 @@ export const uploadTranscription = async (req: Request, res: Response) => {
   }
 };
 
-// lista transcricoes
+/**
+ * @function listTranscriptions
+ * @description lista as transcrições do usuário
+ */
 export const listTranscriptions = async (req: Request, res: Response) => {
   // pega o ID do usuário para filtrar as transcrições.
   const userId = (req as any).user.uid;
@@ -86,7 +92,10 @@ export const listTranscriptions = async (req: Request, res: Response) => {
   res.json({ transcriptions: list, dailyUse: dailyUse });
 };
 
-// busca transcricao especifica
+/**
+ * @function getTranscriptionById
+ * @description busca uma transcricao especifica
+ */
 export const getTranscriptionById = async (req: Request, res: Response) => {
   const id = req.params.id;
   const record = await getRecord(id);
@@ -94,18 +103,21 @@ export const getTranscriptionById = async (req: Request, res: Response) => {
   res.json(record);
 };
 
-// deleta transcricao
+/**
+ * @function deleteTranscription
+ * @description deleta transcricao
+ */
 export const deleteTranscription = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
     
-    // Busca o registro para obter o caminho do arquivo
+    // busca o registro para obter o caminho do arquivo
     const record = await getRecord(id);
     if (!record) {
       return res.status(404).json({ error: "Transcrição não encontrada." });
     }
 
-    // Deleta o arquivo da pasta 'uploads' se ele existir
+    // deleta o arquivo da pasta 'uploads' se ele existir
     const filePath = record.result_path;
     if (filePath && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);

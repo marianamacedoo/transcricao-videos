@@ -23,7 +23,7 @@ if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath);
 // middleware CORS para permitir requisicoes
 app.use(cors());
 
-// Express aceita requisicoes JSON
+// express aceita requisicoes JSON
 app.use(express.json());
 
 // acesso a pasta uploads

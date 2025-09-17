@@ -9,6 +9,10 @@ import { updateRecord } from './db.service';
 const OPENAI_TRANSCRIPT_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
+/**
+ * @function transcribeChunk
+ * @description Envia um pedaço de áudio para a API e retorna a transcrição
+ */
 async function transcribeChunk(chunkPath: string): Promise<string> {
     const form = new FormData();
     form.append('file', fs.createReadStream(chunkPath));
@@ -25,12 +29,19 @@ async function transcribeChunk(chunkPath: string): Promise<string> {
     return response.data?.text ?? '';
 }
 
+/**
+ * @function createLargeTranscriptionAsync
+ * @description Lida com o processamento de arquivos de áudio grandes
+ * @param {string} id - O ID único da transcrição.
+ * @param {string} filePath - O caminho do arquivo grande.
+ * @returns {Promise<string | null>} O caminho para o arquivo de texto da transcrição.
+ */
 export async function createLargeTranscriptionAsync(id: string, filePath: string): Promise<string | null> {
     const textChunks: string[] = [];
     const filesToDelete: string[] = [filePath];
     const maxChunkSize = 20 * 1024 * 1024; // 20MB para garantir que fique abaixo do limite
     console.log('Iniciando o processamento de arquivo grande...');
-    
+
     try {
         const audioSize = fs.statSync(filePath).size;
         const totalDuration = await getMediaDuration(filePath);
@@ -57,7 +68,7 @@ export async function createLargeTranscriptionAsync(id: string, filePath: string
             const chunkPath = path.join(path.dirname(filePath), chunkFile);
             const chunkText = await transcribeChunk(chunkPath);
             textChunks.push(chunkText);
-            filesToDelete.push(chunkPath); // Adiciona os pedaços para deletar
+            filesToDelete.push(chunkPath); // adiciona os pedaços para deletar
         }
 
         const fullText = textChunks.join(' ');
@@ -77,6 +88,10 @@ export async function createLargeTranscriptionAsync(id: string, filePath: string
     }
 }
 
+/**
+ * @function getMediaDuration
+ * @description Obtém a duração de um arquivo de mídia usando ffprobe
+ */
 async function getMediaDuration(filePath: string): Promise<number> {
     return new Promise((resolve, reject) => {
         fluentFfmpeg.ffprobe(filePath, (err, data) => {
