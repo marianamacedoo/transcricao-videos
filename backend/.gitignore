@@ -8,5 +8,3 @@ dist/
 #chaves
 serviceAccountKey.json
 
-# ignorar a pasta de uploads
-uploads/
