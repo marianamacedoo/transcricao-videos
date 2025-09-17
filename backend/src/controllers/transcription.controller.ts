@@ -1,10 +1,11 @@
 
 import { Request, Response } from 'express';
-import { createRecord, listRecords, getRecord, updateRecord, getLastTranscriptionByUserId, getDailyUse} from '../services/db.service';
+import { createRecord, listRecords, getRecord, updateRecord, getLastTranscriptionByUserId, getDailyUse, deleteRecord} from '../services/db.service';
 import { createTranscriptionAsync, getMediaDuration } from '../services/transcription.service';
 import { createLargeTranscriptionAsync } from '../services/largeFile.service';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
 
 // upload do arquivo para transcrição
 export const uploadTranscription = async (req: Request, res: Response) => {
@@ -93,3 +94,27 @@ export const getTranscriptionById = async (req: Request, res: Response) => {
   res.json(record);
 };
 
+// deleta transcricao
+export const deleteTranscription = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    
+    // Busca o registro para obter o caminho do arquivo
+    const record = await getRecord(id);
+    if (!record) {
+      return res.status(404).json({ error: "Transcrição não encontrada." });
+    }
+
+    // Deleta o arquivo da pasta 'uploads' se ele existir
+    const filePath = record.result_path;
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    
+    await deleteRecord(id);
+    res.status(204).send(); // Resposta sem conteúdo para sucesso
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao deletar transcrição" });
+  }
+};

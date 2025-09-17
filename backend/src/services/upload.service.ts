@@ -15,7 +15,20 @@ const storage = multer.diskStorage({
   }
 });
 
+// o filtro de arquivo 
+const fileFilter = (_req: any, file: any, cb: any) => {
+  const allowedExtensions = ['.mp3', '.mp4', '.wav', '.m4a', '.flac', '.aac', '.ogg', '.mov', '.avi'];
+  const fileExtension = path.extname(file.originalname).toLowerCase();
+  
+  if (allowedExtensions.includes(fileExtension)) {
+    cb(null, true); // Aceita o arquivo
+  } else {
+    cb(new Error('Formato de arquivo inválido.'), false); // Rejeita o arquivo
+  }
+};
+
 export const upload = multer({
   storage,
-  limits: { fileSize: 1024 * 1024 * 500 } // 500MB limite
+  limits: { fileSize: 1024 * 1024 * 500 }, // 500MB limite
+  fileFilter
 });
