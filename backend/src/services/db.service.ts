@@ -9,13 +9,15 @@ type Record = {
   status: 'processing' | 'done' | 'failed';
   resultPath: string | null;
   createdAt: string;
+  dailyUse: number;
 };
+
 
 // cria um novo registro de transcrição no banco de dados
 export async function createRecord(record: any) {
   const queryText = `
-    INSERT INTO transcriptions(id, user_id, original_name, filename, status, result_path, created_at)
-    VALUES($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO transcriptions(id, user_id, original_name, filename, status, result_path, created_at, daily_use)
+    VALUES($1, $2, $3, $4, $5, $6, $7, $8)
   `;
   const values = [
     record.id,
@@ -24,7 +26,8 @@ export async function createRecord(record: any) {
     record.filename,
     record.status,
     record.resultPath,
-    record.createdAt
+    record.createdAt,
+    record.dailyUse // Adiciona dailyUse aos valores
   ];
   await pool.query(queryText, values);
   return record;
@@ -45,17 +48,46 @@ export async function getRecord(id: string) {
 }
 
 
-// atualiza um registro de transcrição no banco de dados
+// Atualiza um registro de transcrição no banco de dados
 export async function updateRecord(id: string, patch: Partial<Record>) {
   const fields = Object.keys(patch).map((key, index) => {
+    // Ajusta o nome da coluna para o formato do banco de dados (snake_case)
     if (key === 'resultPath') {
       return `result_path = $${index + 2}`;
+    }
+    if (key === 'transcriptionText') {
+      return `transcription_text = $${index + 2}`;
+    }
+    if (key === 'dailyUse') {
+      return `daily_use = $${index + 2}`;
     }
     return `${key} = $${index + 2}`;
   }).join(', ');
 
   const values = [id, ...Object.values(patch)];
   const queryText = `UPDATE transcriptions SET ${fields} WHERE id = $1 RETURNING *`;
+  
   const result = await pool.query(queryText, values);
   return result.rows[0] || null;
+}
+
+// busca a ultima transcrição de um usuário
+export async function getLastTranscriptionByUserId(userId: string) {
+    const queryText = 'SELECT daily_use, created_at FROM transcriptions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1';
+    const result = await pool.query(queryText, [userId]);
+    return result.rows[0] || null;
+}
+
+// buscar o uso diário total do usuário
+export async function getDailyUse(userId: string) {
+  const queryText = `
+    SELECT daily_use
+    FROM transcriptions
+    WHERE user_id = $1 AND created_at >= NOW()::date
+    ORDER BY created_at DESC
+    LIMIT 1;
+  `;
+  const result = await pool.query(queryText, [userId]);
+  const dailyUse = result.rows[0]?.daily_use || 0;
+  return dailyUse;
 }

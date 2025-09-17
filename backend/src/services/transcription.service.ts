@@ -1,17 +1,25 @@
-import fsp from 'fs/promises'; 
+// transcription.service.ts
+
 import fs from 'fs';
+import fsp from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import axios from 'axios';
 import FormData from 'form-data';
-import { updateRecord } from './db.service';
+import { updateRecord, getLastTranscriptionByUserId } from './db.service';
 
 const execAsync = promisify(exec);
 const OPENAI_TRANSCRIPT_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
-// converte um arquivo de áudio para MP3 usando o ffmpeg
+// Função para obter a duração do arquivo de áudio/vídeo em segundos
+export async function getMediaDuration(filePath: string): Promise<number> {
+    const { stdout } = await execAsync(`ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`);
+    return parseFloat(stdout);
+}
+
+// Converte um arquivo de áudio para MP3 usando o ffmpeg
 async function convertToMp3(inputPath: string): Promise<string> {
   const outPath = `${inputPath}.mp3`;
   const cmd = `ffmpeg -y -i "${inputPath}" -vn -acodec libmp3lame -ar 44100 -ac 2 "${outPath}"`;
@@ -20,8 +28,8 @@ async function convertToMp3(inputPath: string): Promise<string> {
 }
 
 // inicia o processo de transcrição de forma assíncrona.
-export async function createTranscriptionAsync(id: string, filePath: string): Promise<string | null> {
-  const filesToDelete: string[] = []; // armazena os arquivos para serem deletados
+export async function createTranscriptionAsync(id: string, filePath: string, userId: string, dailyUse: number): Promise<string | null> {
+  const filesToDelete: string[] = [filePath]; // armazena o caminho original
 
   try {
     // checagem e Conversão para Áudio
@@ -29,9 +37,6 @@ export async function createTranscriptionAsync(id: string, filePath: string): Pr
     let audioPath = filePath;
     const audioExts = ['.mp3', '.wav', '.m4a', '.flac', '.aac', '.ogg'];
     
-    // adiciona o arquivo original à lista para ser deletado
-    filesToDelete.push(filePath);
-
     //se nao tiver a extensao do audio
     if (!audioExts.includes(ext)) {
       audioPath = await convertToMp3(filePath);
@@ -55,13 +60,13 @@ export async function createTranscriptionAsync(id: string, filePath: string): Pr
     const text = response.data?.text ?? '';
     const audioDurationInSeconds = response.data?.usage?.seconds ?? 0;
     
-    // Converte a duração para minutos (opcional)
+    // Converte a duração para minutos
     const audioDurationInMinutes = audioDurationInSeconds / 60;
     
     // Salva o resultado em um arquivo .txt e retorna o caminho.
     const outTxtPath = path.resolve(UPLOADS_DIR, `${id}.txt`);
     await fsp.writeFile(outTxtPath, text, 'utf-8');
-
+    
     // Remove os arquivos temporários de áudio.
     for (const file of filesToDelete) {
       if (fs.existsSync(file)) {
@@ -69,6 +74,9 @@ export async function createTranscriptionAsync(id: string, filePath: string): Pr
       }
     }
 
+    // Atualiza o registro com o caminho do arquivo e o uso diário.
+    await updateRecord(id, { status: 'done', resultPath: outTxtPath, dailyUse: dailyUse });
+    
     // retorna o caminho para o arquivo .txt que foi salvo.
     return outTxtPath;
 

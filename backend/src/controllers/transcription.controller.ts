@@ -1,7 +1,7 @@
 
 import { Request, Response } from 'express';
-import { createRecord, listRecords, getRecord, updateRecord } from '../services/db.service';
-import { createTranscriptionAsync } from '../services/transcription.service';
+import { createRecord, listRecords, getRecord, updateRecord, getLastTranscriptionByUserId, getDailyUse} from '../services/db.service';
+import { createTranscriptionAsync, getMediaDuration } from '../services/transcription.service';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,31 +12,61 @@ export const uploadTranscription = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Arquivo não enviado (campo "file")' });
     }
 
-    // pega o ID do usuário do objeto de requisição 
-    const userId = (req as any).user.uid;
-    const transcriptionId = uuidv4(); //gera o id da transcrição
+    // lista de extensões de arquivos de mídia permitidas
+    const allowedExtensions = ['.mp3', '.mp4'];
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    
+    // verifica se a extensão do arquivo é permitida
+    if (!allowedExtensions.includes(fileExtension)) {
+      return res.status(400).json({ error: 'Formato de arquivo inválido.' });
+    }
 
-    // cria registro inicial (status: processing)
+    const userId = (req as any).user.uid;
+    const transcriptionId = uuidv4();
+
+    // Inicia o processo de verificação da cota
+    let currentDailyUse = 0;
+    const lastTranscription = await getLastTranscriptionByUserId(userId);
+    const today = new Date();
+
+    if (lastTranscription && new Date(lastTranscription.created_at).toLocaleDateString() === today.toLocaleDateString()) {
+        currentDailyUse = lastTranscription.daily_use;
+    }
+    
+    
+    const mediaDurationInSeconds = await getMediaDuration(req.file.path);
+    const estimatedAudioDurationInMinutes = mediaDurationInSeconds / 60;
+    console.log('Duração do áudio:', mediaDurationInSeconds, 'segundos');
+
+    const newDailyUse = currentDailyUse + estimatedAudioDurationInMinutes;
+    console.log('Duração do áudio:', estimatedAudioDurationInMinutes, 'minutos');
+
+    // Verifica se a cota de 60 minutos será excedida
+    if (newDailyUse > 60) {
+        return res.status(403).json({ error: 'Não foi possível fazer a transcrição. Ultrapassa limite diário de 60 minutos.' });
+    }
+
     const record = await createRecord({
       id: transcriptionId,
-      userId: userId, // associa a transcrição ao usuário
+      userId: userId,
       filename: req.file.filename,
       originalName: req.file.originalname,
       status: 'processing',
       resultPath: null,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      dailyUse: newDailyUse 
+
     });
 
-    // processa em background (não bloqueia a resposta)
-    createTranscriptionAsync(record.id, req.file.path)
+    createTranscriptionAsync(record.id, req.file.path, userId, newDailyUse)
       .then((resultPath) => updateRecord(record.id, { status: 'done', resultPath }))
       .catch((err) => {
         console.error('Erro ao transcrever:', err);
         updateRecord(record.id, { status: 'failed' });
       });
 
-    // responde 202 Accepted
     return res.status(202).json({ id: record.id, status: record.status });
+
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro no upload' });
@@ -48,7 +78,8 @@ export const listTranscriptions = async (req: Request, res: Response) => {
   // pega o ID do usuário para filtrar as transcrições.
   const userId = (req as any).user.uid;
   const list = await listRecords(userId);
-  res.json(list);
+  const dailyUse = await getDailyUse(userId); // busca o uso diário
+  res.json({ transcriptions: list, dailyUse: dailyUse });
 };
 
 // busca transcricao especifica
@@ -58,3 +89,4 @@ export const getTranscriptionById = async (req: Request, res: Response) => {
   if (!record) return res.status(404).json({ error: 'Não encontrado' });
   res.json(record);
 };
+

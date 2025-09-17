@@ -15,7 +15,11 @@ export default function Home() {
       await signInWithEmailAndPassword(auth, email, password);
       window.location.href = "/dashboard";
     } catch (err: any) {
-      setError(err.message);
+      if (err.code === "auth/invalid-credential") {
+        setError("Senha incorreta!");
+      } else {
+        setError(err.message);
+      }
     }
   };
 

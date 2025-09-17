@@ -9,11 +9,17 @@ export default function Dashboard() {
   const [transcriptions, setTranscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // novos estados para o formulário de upload
+  const [dailyUse, setDailyUse] = useState<number>(0);
+  const [shouldRefresh, setShouldRefresh] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const statusMap: { [key: string]: string } = {
+    done: 'Pronto',
+    processing: 'Processando',
+    failed: 'Falhou',
+  };
+
 
   // função para lidar com o upload do arquivo
   const handleUpload = async (e: React.FormEvent) => {
@@ -37,12 +43,14 @@ export default function Dashboard() {
       });
 
       if (!response.ok) {
-        throw new Error("Falha no upload da transcrição.");
-      }
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Falha no upload da transcrição.");
+    }
 
       const data = await response.json();
       setUploadMessage(`Upload realizado com sucesso! ID da transcrição: ${data.id}. Status: ${data.status}`);
       setFile(null); // limpa o arquivo selecionado
+      setShouldRefresh(true);
 
       const updatedListResponse = await fetch("http://localhost:4000/transcriptions", {
         headers: {
@@ -82,7 +90,8 @@ export default function Dashboard() {
         }
 
         const data = await response.json();
-        setTranscriptions(data);
+        setTranscriptions(data.transcriptions); 
+        setDailyUse(data.dailyUse); 
         setLoading(false);
       } catch (err: any) {
         setError(err.message);
@@ -97,14 +106,18 @@ export default function Dashboard() {
         setUser(u);
         const token = await u.getIdToken();
         fetchTranscriptions(token);
+        setShouldRefresh(false);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [shouldRefresh]);
 
   if (!user || loading) return <p className="text-center mt-8 text-gray-600">Carregando...</p>;
   if (error) return <p className="text-center mt-8 text-red-500">Erro: {error}</p>;
+
+  const MAX_DAILY_USE = 60; 
+  const isQuotaExceeded = dailyUse >= MAX_DAILY_USE;
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -121,6 +134,16 @@ export default function Dashboard() {
             </button>
           </div>
         </header>
+        {/* Adicione o card com o limite diário */}
+        <section className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Uso Diário</h2>
+          <p className="text-gray-600">
+            Você já utilizou <span className="font-bold">{dailyUse.toFixed(2)}</span> de 60 minutos.
+          </p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${(dailyUse / 60) * 100}%` }}></div>
+          </div>
+        </section>
 
         {/* Botão de demonstração para pegar o token */}
         <div className="mb-8 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-lg">
@@ -138,27 +161,33 @@ export default function Dashboard() {
         {/* Seção para o formulário de upload */}
         <section className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Solicitar Nova Transcrição</h2>
-          <form onSubmit={handleUpload}>
-            <input
-              type="file"
-              onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-              className="w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100"
-            />
-            <button
-              type="submit"
-              disabled={uploading || !file}
-              className={`mt-4 w-full py-2 px-4 rounded-lg font-bold
-                ${uploading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}
-              `}
-            >
-              {uploading ? "Enviando..." : "Enviar para Transcrever"}
-            </button>
-          </form>
+          {isQuotaExceeded ? (
+            <p className="text-red-500 font-bold text-center">
+              Limite diário de 60 minutos excedido.
+            </p>
+          ) : (
+            <form onSubmit={handleUpload}>
+              <input
+                type="file"
+                onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+                className="w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100"
+              />
+              <button
+                type="submit"
+                disabled={uploading || !file}
+                className={`mt-4 w-full py-2 px-4 rounded-lg font-bold
+                  ${uploading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}
+                `}
+              >
+                {uploading ? "Enviando..." : "Enviar para Transcrever"}
+              </button>
+            </form>
+          )}
           {uploadMessage && (
             <p className="mt-4 text-center text-sm font-semibold">
               {uploadMessage}
@@ -192,7 +221,7 @@ export default function Dashboard() {
                         {t.original_name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {t.status}
+                        {statusMap[t.status] || t.status}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {t.status === "done" && (
