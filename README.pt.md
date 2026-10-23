@@ -1,3 +1,5 @@
+<p align="right"><a href="README.md">🇺🇸 English</a> · 🇧🇷 Português</p>
+
 # 🎬 Video Transcription Fullstack App
 
 ## 📝 Visão Geral
